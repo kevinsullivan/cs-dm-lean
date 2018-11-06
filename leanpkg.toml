@@ -1,7 +1,6 @@
 [package]
 name = "cs-dm"
 version = "0.1"
-lean_version = "nightly-2018-08-23"
 path = "src"
 
 [dependencies]
