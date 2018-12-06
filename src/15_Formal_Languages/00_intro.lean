@@ -34,13 +34,62 @@ syntax defines a language of propositions,
 predicates, etc., while a semantics tells
 us how to evaluate the truth of any such
 expression.
+-/
 
+/-
 In this unit we begin by formalizing the
 syntax, interpretation, and semantics of
 propositional logic. Proposition logic is
 a very simple logic, one that essentially
 mirrors (is "isomorphic to") the language
 of Boolean expressions.
+
+There are only a few kinds of expressions
+in propositional logic. These constitute
+the syntax of propositional logic.
+
+* literal expressions for true and false
+* variable expressions
+* not expressions
+* and expressions
+* or expressions
+* etc.
+
+The semantics gives us a way to decide
+what each expression in a language means.
+In proposition logic and expression means
+("is") either true or false. Here are the
+rules.
+
+* the literal true expression is true
+
+* the literal false expression is false
+
+* the value of an "and" expressions, e1 ∧ e2,
+is the Boolean conjunction of the values 
+of the expressions, e1 and e2, respectively
+
+* the value of a "not" expression ¬ e, is
+the Boolean negation of the value of e
+
+* this leaves the question of the value of
+a variable expression; for this we need an
+additional idea: that of an interpretation.
+An interpretation simply assigns a Boolean
+value to each variable that might appear in
+an expression. Now, to evaluate a variable 
+expression, X, we just "look up" its value
+in a given interpretation. A variable will
+have different values under different
+interpretations, and so expressions, in 
+general (because they generally involve
+variables) will have different values under
+different interpretations.
+
+We now show you how not only to make these
+ideas precise, but how to automate them, in
+Lean. You are about to implement your own
+simple automated logical reasoning system!
 -/
 
 -- Syntax
@@ -72,11 +121,14 @@ inductive pVar : Type
 
 -- Examples
 
+#check (pVar.mk 0)
+
+-- Nice names for a few pVars
+
 def X := pVar.mk 0
 def Y := pVar.mk 1
 def Z := pVar.mk 2
 def W := pVar.mk 3
-
 
 /-
 Now we formalize a language of
@@ -93,9 +145,10 @@ open pExp
 
 -- Examples of expressions
 
-def ff_exp := mk_lit_pexp ff
-def tt_exp := mk_lit_pexp tt
-#reduce tt_exp
+def false_exp := mk_lit_pexp ff
+#check false_exp
+
+def true_exp := mk_lit_pexp tt
 
 def X_exp := mk_var_pexp X
 def Y_exp := mk_var_pexp Y
@@ -112,10 +165,18 @@ def and_X_Z_exp := mk_and_pexp X_exp Z_exp
 notation e1 ∧ e2 :=  mk_and_pexp e1 e2
 notation ¬ e := mk_not_pexp e
 
+-- expressions using our notation!
 def not_X_exp' := ¬ X_exp
 def and_X_Y_exp' := X_exp ∧ Y_exp
 def and_X_Z_exp' := X_exp ∧ Z_exp
 
+
+-- Quiz
+
+def tf := (mk_lit_pexp tt) ∧ (mk_lit_pexp ff)
+def nt := ¬ (mk_lit_pexp tt)
+def nxy := ¬ (X_exp ∧ Y_exp)
+def foo := nt ∧ nxy
 
 -- Semantics
 
@@ -192,7 +253,13 @@ def pEval : pExp → pInterp → bool
 -- how to evaluate an "and" expression
 | (mk_and_pexp e1 e2) i := 
     band (pEval e1 i) (pEval e2 i)
+| (mk_or_pexp e1 e2) i := 
+    bor (pEval e1 i) (pEval e2 i)
 
+
+notation (e1 ∧ e2) := mk_and_pexp e1 e2
+
+def conjunct : pExp := X_exp ∧ Y_exp
 /-
 And now we have a formal language, with
 a syntax, interpretations, and semantics.
@@ -265,6 +332,8 @@ analyze expressions; and we can
 even state and prove theorems 
 about our language.
 -/
+
+
 
 /-
 A function that returns the set 
