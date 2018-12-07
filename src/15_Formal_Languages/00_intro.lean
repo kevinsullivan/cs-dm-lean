@@ -1,34 +1,20 @@
 /-
 A logic is a "formal language" that has
 a mathematically defined syntax and a
-mathematically defined semantics. The
-semantics in turn depends on an intended
-"real-world interpretation" of the basic
-symbols in a given logical expression.
-
-Consider for example this proposition
-∀ p : Person, ∃ m: Person, motherOf p m. 
-We could have written it in a logically
-equivalent form: ∀ x : X, ∃ m : X, r p m.
-The benefit of the first version is that
-it *suggests* an intended interpretation.
-We mean for p and m to represent people
-(any human beings), and we intend the
-motherOf predicate to represent the real
-relationship connecting people to moms.
+mathematically defined semantics. 
 
 We now drill down on the notions of the
 syntax and semantics of a formal language.
 The syntax of a language defines the set
 of valid expressions in the language. In
 predicate logic, for example, ∀ p: Person,
-∃ m : Person, motherOf p m is well formed.
-However, the expression, ∀ ∃ r, is not.
+∃ m : Person, motherOf p m is syntactically
+well formed, but ()∀ ∃ r() is not.
 
 The semantics of a language then assigns 
-a meaning of some kind to each expression
-in the language given an interpretation
-of the basic elements of an expression.
+a meaning each "well formed" expression
+in the language.
+
 When the formal language is a logic, the
 syntax defines a language of propositions,
 predicates, etc., while a semantics tells
@@ -37,54 +23,58 @@ expression.
 -/
 
 /-
-In this unit we begin by formalizing the
-syntax, interpretation, and semantics of
-propositional logic. Proposition logic is
-a very simple logic, one that essentially
-mirrors (is "isomorphic to") the language
-of Boolean expressions.
+In this unit we formalize the syntax and
+semantics of what we call propositional 
+(as opposed to predicate) logic. 
+
+Propositional logic is a very simple logic.
+It essentially mirrors (is "isomorphic to") 
+the language of Boolean expressions.
 
 There are only a few kinds of expressions
 in propositional logic. These constitute
-the syntax of propositional logic.
+the syntax of this formal language.
 
-* literal expressions for true and false
-* variable expressions
-* not expressions
-* and expressions
-* or expressions
+* "literal expressions" for true and false
+* "variable expressions"
+* "not expressions"
+* "and expressions"
+* "or expressions"
 * etc.
 
-The semantics gives us a way to decide
+The semantics then gives us a way to decide
 what each expression in a language means.
-In proposition logic and expression means
+In propositional logic an expression means
 ("is") either true or false. Here are the
 rules.
 
-* the literal true expression is true
+* literal true evaluates to true
 
-* the literal false expression is false
+* literal false evaluates to false
 
-* the value of an "and" expressions, e1 ∧ e2,
-is the Boolean conjunction of the values 
-of the expressions, e1 and e2, respectively
+* the value of an "and" expression, 
+e1 ∧ e2, is the Boolean conjunction 
+of the values of e1 and e2, resp.
 
-* the value of a "not" expression ¬ e, is
-the Boolean negation of the value of e
+* the value of a "not" expression,
+¬ e, is the Boolean negation of the 
+value of e
 
-* this leaves the question of the value of
-a variable expression; for this we need an
-additional idea: that of an interpretation.
-An interpretation simply assigns a Boolean
-value to each variable that might appear in
-an expression. Now, to evaluate a variable 
+* this leaves the question of the value 
+of a variable expression. For this we 
+need an additional idea: that of an 
+interpretation. An interpretation is an
+assignment of Boolean values to each of
+the variables that might appear in some 
+expression. Now, to evaluate a variable 
 expression, X, we just "look up" its value
-in a given interpretation. A variable will
-have different values under different
-interpretations, and so expressions, in 
-general (because they generally involve
-variables) will have different values under
-different interpretations.
+in a given interpretation. A variable 
+expression will thus have different values 
+under different interpretations. Thus, 
+expressions, in general, because they 
+generally involve variables, will have 
+different values under different 
+interpretations.
 
 We now show you how not only to make these
 ideas precise, but how to automate them, in
@@ -177,6 +167,11 @@ def tf := (mk_lit_pexp tt) ∧ (mk_lit_pexp ff)
 def nt := ¬ (mk_lit_pexp tt)
 def nxy := ¬ (X_exp ∧ Y_exp)
 def foo := nt ∧ nxy
+def bar := (¬ nxy) ∧ foo
+def baz : pExp := tf
+
+def jab := ¬ (X_exp ∧ Y_exp)
+#reduce jab 
 
 -- Semantics
 
@@ -253,13 +248,7 @@ def pEval : pExp → pInterp → bool
 -- how to evaluate an "and" expression
 | (mk_and_pexp e1 e2) i := 
     band (pEval e1 i) (pEval e2 i)
-| (mk_or_pexp e1 e2) i := 
-    bor (pEval e1 i) (pEval e2 i)
 
-
-notation (e1 ∧ e2) := mk_and_pexp e1 e2
-
-def conjunct : pExp := X_exp ∧ Y_exp
 /-
 And now we have a formal language, with
 a syntax, interpretations, and semantics.
@@ -269,6 +258,7 @@ under varying interpretations.
 
 -- literal expressions
 
+/-
 #reduce pEval tt_exp falseInterp
 #reduce pEval tt_exp trueInterp
 #reduce pEval tt_exp anInterp
@@ -276,6 +266,7 @@ under varying interpretations.
 #reduce pEval ff_exp falseInterp
 #reduce pEval ff_exp trueInterp
 #reduce pEval ff_exp anInterp
+-/
 
 -- variable expressions
 #reduce pEval X_exp falseInterp
@@ -341,25 +332,45 @@ of variables in a given pExp.
 -/
 
 /-
-Helper function that adds variables
-in given expression to given set of
-variables.
+A recursive helper function that 
+adds all the variables in given 
+expression to the given (often 
+already non-empty) set of variables.
+
+Understand the type and purpose of
+this function, then go on to read 
+the following main function. Study
+its purpose, type, and implementation,
+then come back for a deeper look at 
+this function.
+
+We implement (prove) the function (type)
+by case analysis on possible forms of the 
+given pExp.
 -/
 def vars_in_exp_helper: 
     pExp → set pVar → set pVar
+
+-- literal expression
 | (mk_lit_pexp _) s := s
+-- variable expression
 | (mk_var_pexp v) s := s ∪ { v }
+-- not expression
 | (mk_not_pexp e) s := 
     s ∪ (vars_in_exp_helper e s)
+-- and expression
 | (mk_and_pexp e1 e2) s := 
     s ∪ 
     (vars_in_exp_helper e1 s) ∪ 
     (vars_in_exp_helper e2 s)
 
 /-
-Main function: add variables in given
-expression to initially empty set and
-return result.
+Main function: use helper function to
+add all of the variables in the given
+expression to an initially empty set, 
+and return result. That is all of the
+variables appearing anywhere in that
+expression.
 -/
 def vars_in_exp (e: pExp) : set pVar :=
     vars_in_exp_helper e ({}: set pVar)
