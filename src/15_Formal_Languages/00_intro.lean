@@ -324,58 +324,71 @@ even state and prove theorems
 about our language.
 -/
 
-
-
 /-
-A function that returns the set 
-of variables in a given pExp.
+Let's define a function that 
+returns the set of variables 
+in a given pExp. This will be
+useful in the future.
 -/
 
 /-
-A recursive helper function that 
-adds all the variables in given 
-expression to the given (often 
-already non-empty) set of variables.
+We start by defining a recursive 
+helper function that adds all the 
+variables in given expression to 
+the given, often already non-empty, 
+set of variables.
 
 Understand the type and purpose of
 this function, then go on to read 
 the following main function. Study
 its purpose, type, and implementation,
 then come back for a deeper look at 
-this function.
+how this function is implemented.
+Learn to use functions knowing only
+their type and purpose, ignoring, at
+least at first, their implementation
+details. Pratice mental abstracting.
 
-We implement (prove) the function (type)
-by case analysis on possible forms of the 
-given pExp.
+We implement (prove) this recursive 
+function (type) by case analysis on 
+possible forms of the given pExp.
 -/
 def vars_in_exp_helper: 
     pExp → set pVar → set pVar
 
--- literal expression
+-- literal expressions add no variables to the set
 | (mk_lit_pexp _) s := s
--- variable expression
+-- a variable expression adds variable v to the set
 | (mk_var_pexp v) s := s ∪ { v }
--- not expression
+-- a (not e) expression adds the variables in e
 | (mk_not_pexp e) s := 
     s ∪ (vars_in_exp_helper e s)
--- and expression
+-- an (and e1 e2), add the variables in e1 and e2 
 | (mk_and_pexp e1 e2) s := 
     s ∪ 
     (vars_in_exp_helper e1 s) ∪ 
     (vars_in_exp_helper e2 s)
 
 /-
-Main function: use helper function to
-add all of the variables in the given
-expression to an initially empty set, 
-and return result. That is all of the
-variables appearing anywhere in that
-expression.
+Main function: a non-recursive function
+that passes an initially empty set of
+variables to the helper function and 
+then gets back a set of all, and only,
+the variables in the given expression.
 -/
 def vars_in_exp (e: pExp) : set pVar :=
     vars_in_exp_helper e ({}: set pVar)
 
+
+/-
+Examples of its use
+-/
 #reduce vars_in_exp and_X_Y_exp
+-- A predicate defining the set { X, Y 
+
+/-
+Another example
+-/
 #reduce vars_in_exp and_X_Z_exp
 
 /-
@@ -387,7 +400,8 @@ expression is 1. The depth of a (not e)
 expression is 1 + the depth of e. And
 the depth of an (and e1 e2) expression
 is 1 + the max of the depths of e1 and
-e2. You can use the Lean-provided max function in your answer.
+e2. You can use the Lean-provided max 
+function in your answer.
 -/
 
 #reduce max 5 7
@@ -397,13 +411,16 @@ e2. You can use the Lean-provided max function in your answer.
 We can also prove theorems about
 our language in general. Here's a
 proof that evaluation under a given
-interpretation is deterministic. It
-always produces the same result.
+interpretation is "deterministic:: 
+it always produces the same result.
+
 This is really just a corollary of
-the fact that functions in Lean are
-single valued and we've defined the
-semantics of expressions with a
-function.
+the facts that (1) functions in Lean 
+are single valued and (2) we defined 
+the semantics of expressions with a
+function. There's one and only one 
+answer for the value of any given
+expression.
 -/
 
 theorem pEval_deterministic :
@@ -417,13 +434,16 @@ rw h_v1,
 rw h_v2,
 end
 
+
 /-
-We can also prove theorems about
-particular expressions in our language.
-For example, if X_exp is some variable
-expression, then the expression 
-X_exp ∧ (¬ X_exp) is false under *any*
-interpretation.
+We can also prove theorems ("reason
+about") particular expressions, or
+certain classes of expressions, in 
+our language. For example, if X_exp 
+is any variable expression, then the 
+expression (X_exp ∧ (¬ X_exp)) is 
+false under any interpretation. We
+can easily prove this proposition.
 -/
 
 theorem contra :
@@ -442,15 +462,172 @@ right, apply rfl,
 end
 
 /-
-EXERCISE: extend the syntax, surface
-syntax, and semantics of the language
-with an "or" operator. Use ∨ as surface
-syntax.
+Note that it is quantified over all
+possible interpretations: over all
+possible functions from pVar → bool.
+Lean supports what is called higher
+order predicate logic. Quantifying
+over functions and relations is ok
+in a higher-order predicate logic. 
+It is not allowed in the first-order
+predicate logic of everyday math and
+computer science. Here you can see
+that it gives you great expressive
+power to be able to quantify over
+functions. It gives us a way to say,
+"under any possible interpretation",
+which is exactly what we need to be
+able to say to define satisfiability,
+validity, unsatisfiability, etc.
 -/
 
+
+
 /-
-Exercise: now prove that for any 
+Exercise: Prove that for any 
 variable, V, the logical expression
 (mk_var_exp V) ∨ (¬ (mk_var_exp V))
 always evaluates to true.
 -/
+
+def valid (e : pExp) : Prop :=
+    ∀ i : pInterp, pEval e i = tt
+
+/-
+An expression in propositional logic
+is unsatisfiable if it does'ot evaluate 
+to true under any interpretation.
+-/
+
+def unsatisfiable (e : pExp) : Prop :=
+    ∀ i, pEval e i = ff
+
+/-
+You could also have said there does not
+exist an i that makes (pEval e i) = tt.
+-/
+
+/-
+An interpretation that makes an
+expression, e, evaluate to true,
+is said to be a "model" of that
+expression. Here's a predicate
+asserting that i is a model of e.
+-/
+
+def isModel (i: pInterp) (e : pExp) :=
+    pEval e i = tt
+
+/-
+An expression is said to be satisfiable 
+if there is at least one interpretation 
+under which it evaluates to true.
+-/
+def satisfiable (e : pExp) : Prop :=
+    ∃ i, isModel i e
+
+/-
+Example: X ∧ ¬ X is unsatisfiable.
+-/
+
+example : unsatisfiable (X_exp ∧ (¬ (X_exp))) :=
+begin
+unfold unsatisfiable,
+intro i,
+rw pEval, -- you can do this
+rw pEval, -- and do it again
+cases (pEval X_exp i), -- cool!
+trivial,
+trivial,
+end
+
+/-
+EXERCISE: Once you've extended
+our logic with an or operator,
+formulize and prove the proposition
+that (our rendering of) X ∨ (¬ X)
+is valid.
+
+EXERCISE: Prove the proposition
+that (X ∨ Y) ∧ Z is satisfiable.
+Hint: You'll need a witness. There
+is an element of search involved
+in solving a problem like this.
+-/
+
+/-
+EXERCISE: Write a SAT solver based
+on what we've done here.
+-/
+
+-- m'th bit from right in binary rep of n
+def mrbn: ℕ → ℕ → bool 
+| 0 n := n % 2 = 1
+| (nat.succ m') n := mrbn m' (n/2) 
+
+/- smoke test
+#reduce mrbn 0 15
+#reduce mrbn 2 15
+#reduce mrbn 2 15
+#reduce mrbn 3 15
+#reduce mrbn 4 15
+#reduce mrbn 5 15
+-/
+
+/-
+The mth canonical interpretation
+among the 2^n-1 interpretations
+for a set of variables of size n.
+
+The values of the first n-indexed
+variables in the mth interpretation
+are determined by the bits in the 
+binary representation of m. The
+leftmost bit gives the value for 
+the variable with index 0. Each
+bit to the left gives the value of
+the next indexed variable. All 
+subsequent values are ff. m thus 
+effectively enumerates the 2^n 
+interpretations on the n first 
+variables in the index set of all
+variables. 
+-/
+
+def mthInterpOf2toN (m n: ℕ) : pInterp :=
+    if (m >= 2^n)
+    then falseInterp 
+    else
+    λ v : pVar, 
+        match v with
+        | (pVar.mk i) := 
+        if i >= n then 
+        ff 
+        else 
+        (mrbn i m)
+        end
+
+/-
+Examples:
+-/
+
+#reduce pEval and_X_Y_exp (mthInterpOf2toN 3 3)
+
+-- unincorporated
+
+#reduce mthInterpOf2toN 3 5
+
+def first_n_true_inter (n : ℕ) : pInterp :=
+λ v, 
+    match v with
+    | (pVar.mk n') := if n' < n then tt else ff
+    end
+
+def all_models (e : pExp) :=
+    { m | isModel m e}
+
+
+def sat_solve (e : pExp) : option pInterp :=
+none
+
+
